@@ -18,11 +18,18 @@ use shader::Shader;
 
 mod shader;
 
-const VERTICES: [f32; 18] = [
-    // positions      // colors
-    0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // bottom right
-    -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom left
-    0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // top
+#[rustfmt::skip]
+const VERTICES: [f32; 32] = [
+    // positions      // colors        // texture coords
+    0.5,  0.5, 0.0,   1.0, 0.0, 0.0,   1.0, 1.0,   // top right
+    0.5, -0.5, 0.0,   0.0, 1.0, 0.0,   1.0, 0.0,   // bottom right
+   -0.5, -0.5, 0.0,   0.0, 0.0, 1.0,   0.0, 0.0,   // bottom left
+   -0.5,  0.5, 0.0,   1.0, 1.0, 0.0,   0.0, 1.0    // top left 
+];
+
+const INDICES: [u32; 6] = [
+    0, 1, 3,
+    1, 2, 3
 ];
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
@@ -59,6 +66,7 @@ fn main() {
         gl::Viewport(0, 0, width, height)
     });
 
+    // Initialize the shader program
     let shader_program = Shader::new(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
 
     // Initialize VAO
@@ -81,6 +89,19 @@ fn main() {
         );
     }
 
+    // Initialize EBO
+    let mut ebo: u32 = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut ebo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            size_of_val(&INDICES) as isize,
+            INDICES.as_ptr() as *const c_void,
+            gl::STATIC_DRAW,
+        );
+    }
+
     // Link Vertex Attributes
     unsafe {
         gl::VertexAttribPointer(
@@ -88,7 +109,7 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            6 * size_of::<f32>() as i32,
+            8 * size_of::<f32>() as i32,
             0 as *const _,
         );
         gl::EnableVertexAttribArray(0);
@@ -97,16 +118,64 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            6 * size_of::<f32>() as i32,
+            8 * size_of::<f32>() as i32,
             (3 * size_of::<f32>()) as *const _,
         );
         gl::EnableVertexAttribArray(1);
+        gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            8 * size_of::<f32>() as i32,
+            (6 * size_of::<f32>()) as *const _,
+        );
+        gl::EnableVertexAttribArray(2);
     }
 
+    // Initialize Textures
+    let mut texture: u32 = 0;
+    unsafe {
+        // Generate the texture object
+        gl::GenTextures(1, &mut texture);
+        gl::BindTexture(gl::TEXTURE_2D, texture);
+
+        // Set the texture wrapping/filtering options (on the currently bound texture object)
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_MIN_FILTER,
+            gl::LINEAR_MIPMAP_LINEAR as i32,
+        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+        // Load and generate the texture data
+        let container_image = image::io::Reader::open("assets/container.jpg")
+            .expect("Failed to load texture file")
+            .decode()
+            .expect("Failed to decode texture file");
+
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGB as i32,
+            container_image.width() as i32,
+            container_image.height() as i32,
+            0,
+            gl::RGB,
+            gl::UNSIGNED_BYTE,
+            container_image.as_bytes().as_ptr().cast(),
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+    }
+
+    
     // Unbind Buffers
     unsafe {
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
+        gl::BindTexture(gl::TEXTURE_2D, 0);
     }
 
     // Uncomment this to draw in wireframe mode
@@ -127,8 +196,9 @@ fn main() {
         // Draw our triangle
         unsafe {
             shader_program.use_program();
+            gl::BindTexture(gl::TEXTURE_2D, texture);
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, null());
         }
 
         // Poll for events
