@@ -13,7 +13,18 @@ use glfw::{fail_on_errors, Window, WindowEvent};
 use glfw::{Action, Context, Key, OpenGlProfileHint, WindowHint};
 
 type Vertex = [f32; 3];
-const VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
+const VERTICES: [Vertex; 4] = [
+    [0.5, 0.5, 0.0],   // top right
+    [0.5, -0.5, 0.0],  // bottom right
+    [-0.5, -0.5, 0.0], // bottom left
+    [-0.5, 0.5, 0.0],  // top left
+];
+
+type Triangle = [u32; 3];
+const INDICES: [Triangle; 2] = [
+    [0, 1, 3], // first triangle
+    [1, 2, 3], // second triangle
+];
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("../shaders/frag.glsl");
@@ -76,6 +87,19 @@ fn main() {
         );
     }
 
+    // Initialize EBO
+    let mut ebo: u32 = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut ebo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            size_of_val(&INDICES) as isize,
+            INDICES.as_ptr() as *const c_void,
+            gl::STATIC_DRAW,
+        );
+    }
+
     // Link Vertex Attributes
     unsafe {
         gl::VertexAttribPointer(
@@ -88,6 +112,17 @@ fn main() {
         );
         gl::EnableVertexAttribArray(0);
     }
+
+    // Unbind Buffers
+    unsafe {
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        gl::BindVertexArray(0);
+    }
+
+    // Uncomment this to draw in wireframe mode
+    // unsafe {
+    //     gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+    // }
 
     // Main render loop
     while !window.should_close() {
@@ -103,7 +138,7 @@ fn main() {
         unsafe {
             gl::UseProgram(shader_program);
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, null());
         }
 
         // Poll for events
