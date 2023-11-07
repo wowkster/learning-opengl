@@ -17,8 +17,10 @@ use nalgebra_glm as glm;
 
 use c_str_macro::c_str;
 use shader::Shader;
+use texture::{Texture2d, ActiveTextureSlot};
 
 mod shader;
+mod texture;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
@@ -166,80 +168,10 @@ fn main() {
         );
         gl::EnableVertexAttribArray(1);
     }
-
+    
     // Initialize Textures
-    let mut container_texture: u32 = 0;
-    unsafe {
-        // Generate the texture object
-        gl::GenTextures(1, &mut container_texture);
-        gl::BindTexture(gl::TEXTURE_2D, container_texture);
-
-        // Set the texture wrapping/filtering options (on the currently bound texture object)
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MIN_FILTER,
-            gl::LINEAR_MIPMAP_LINEAR as i32,
-        );
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-
-        // Load and generate the texture data
-        let container_image = image::io::Reader::open("assets/container.jpg")
-            .expect("Failed to load texture file")
-            .decode()
-            .expect("Failed to decode texture file");
-
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGB as i32,
-            container_image.width() as i32,
-            container_image.height() as i32,
-            0,
-            gl::RGB,
-            gl::UNSIGNED_BYTE,
-            container_image.as_bytes().as_ptr().cast(),
-        );
-        gl::GenerateMipmap(gl::TEXTURE_2D);
-    }
-
-    let mut awesome_face_texture: u32 = 0;
-    unsafe {
-        // Generate the texture object
-        gl::GenTextures(1, &mut awesome_face_texture);
-        gl::BindTexture(gl::TEXTURE_2D, awesome_face_texture);
-
-        // Set the texture wrapping/filtering options (on the currently bound texture object)
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MIN_FILTER,
-            gl::LINEAR_MIPMAP_LINEAR as i32,
-        );
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-
-        // Load and generate the texture data
-        let awesome_face_image = image::io::Reader::open("assets/awesomeface.png")
-            .expect("Failed to load texture file")
-            .decode()
-            .expect("Failed to decode texture file")
-            .flipv();
-
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGB as i32,
-            awesome_face_image.width() as i32,
-            awesome_face_image.height() as i32,
-            0,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            awesome_face_image.as_bytes().as_ptr().cast(),
-        );
-        gl::GenerateMipmap(gl::TEXTURE_2D);
-    }
+    let container_texture = Texture2d::new("assets/container.jpg", texture::TextureFormat::RGB);
+    let awesome_face_texture = Texture2d::new("assets/awesomeface.png", texture::TextureFormat::RGBA);
 
     // Unbind Buffers
     unsafe {
@@ -277,13 +209,10 @@ fn main() {
         }
 
         // Bind GL Objects
+        container_texture.bind_to(ActiveTextureSlot::Texture0);
+        awesome_face_texture.bind_to(ActiveTextureSlot::Texture1);
+        
         unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, container_texture);
-            
-            gl::ActiveTexture(gl::TEXTURE1);
-            gl::BindTexture(gl::TEXTURE_2D, awesome_face_texture);
-            
             gl::BindVertexArray(vao);
         }
 
