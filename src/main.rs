@@ -18,6 +18,9 @@ use shader::Shader;
 
 mod shader;
 
+const SCREEN_WIDTH: u32 = 800;
+const SCREEN_HEIGHT: u32 = 600;
+
 #[rustfmt::skip]
 const VERTICES: [f32; 32] = [
     // positions      // colors        // texture coords
@@ -27,10 +30,7 @@ const VERTICES: [f32; 32] = [
    -0.5,  0.5, 0.0,   1.0, 1.0, 0.0,   0.0, 1.0    // top left 
 ];
 
-const INDICES: [u32; 6] = [
-    0, 1, 3,
-    1, 2, 3
-];
+const INDICES: [u32; 6] = [0, 1, 3, 1, 2, 3];
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("../shaders/frag.glsl");
@@ -48,7 +48,12 @@ fn main() {
 
     // Create a window for rendering
     let (mut window, events) = glfw
-        .create_window(800, 600, "LearnOpenGL", glfw::WindowMode::Windowed)
+        .create_window(
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            "LearnOpenGL",
+            glfw::WindowMode::Windowed,
+        )
         .expect("Failed to create GLFW window.");
 
     // Make the window the current GL context
@@ -59,7 +64,7 @@ fn main() {
 
     // Set the viewport and register a callback function for window resize events
     unsafe {
-        gl::Viewport(0, 0, 800, 600);
+        gl::Viewport(0, 0, SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
     }
 
     window.set_framebuffer_size_callback(|width, height| unsafe {
@@ -206,7 +211,7 @@ fn main() {
         );
         gl::GenerateMipmap(gl::TEXTURE_2D);
     }
-    
+
     // Unbind Buffers
     unsafe {
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
@@ -224,10 +229,25 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
-        // Create our transformation matrix
-        let mut transform = nalgebra_glm::identity::<f32, 4>();
-        transform = nalgebra_glm::translate(&transform, &nalgebra_glm::vec3(0.5, -0.5, 0.0));
-        transform = nalgebra_glm::rotate(&transform, glfw.get_time() as f32, &nalgebra_glm::vec3(0., 0., 1.));
+        // Create our model matrix
+        let mut model = nalgebra_glm::identity::<f32, 4>();
+        model = nalgebra_glm::rotate(
+            &model,
+            f32::to_radians(-55.0),
+            &nalgebra_glm::vec3(1.0, 0.0, 0.0),
+        );
+
+        // Create our view matrix
+        let mut view = nalgebra_glm::identity::<f32, 4>();
+        view = nalgebra_glm::translate(&view, &nalgebra_glm::vec3(0.0, 0.0, -3.0));
+
+        // Create our projection matrix
+        let mut proj = nalgebra_glm::perspective(
+            SCREEN_WIDTH as f32 / SCREEN_HEIGHT as f32,
+            f32::to_radians(45.0),
+            0.1,
+            100.0,
+        );
 
         // Draw our triangle
         unsafe {
@@ -235,15 +255,16 @@ fn main() {
 
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, container_texture);
-            
+
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, awesome_face_texture);
-            
+
             shader_program.set_i32("texture1", 0);
             shader_program.set_i32("texture2", 1);
 
-            let transform_loc = gl::GetUniformLocation(shader_program.id(), c_str!("transform").as_ptr());
-            gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, transform.as_ptr());
+            shader_program.set_mat4_f32("model", model);
+            shader_program.set_mat4_f32("view", view);
+            shader_program.set_mat4_f32("projection", proj);
 
             gl::BindVertexArray(vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, null());

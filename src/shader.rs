@@ -49,21 +49,43 @@ impl Shader {
     pub unsafe fn id(&self) -> GLuint {
         self.id
     }
+
+    fn get_uniform_location(&self, name: &str) -> i32 {
+        unsafe {
+            let name = CString::new(name).expect("Could not convert name to CString");
+            let uniform_location = gl::GetUniformLocation(self.id, name.as_ptr());
+
+            if uniform_location < 0 {
+                panic!("Could not set uniform: {}", name.to_str().unwrap());
+            }
+
+            uniform_location
+        }
+    }
 }
 
 macro_rules! impl_set_uniform {
+    // Standard Type
     ($type:ty, $func_name:ident, $gl_func:ident, $cast_type:ty) => {
         impl Shader {
             pub fn $func_name(&mut self, name: &str, value: $type) {
                 unsafe {
-                    let name = CString::new(name).expect("Could not convert name to CString");
-                    let uniform_location = gl::GetUniformLocation(self.id, name.as_ptr());
-
-                    if uniform_location < 0 {
-                        panic!("Could not set uniform: {}", name.to_str().unwrap());
-                    }
-                    
-                    gl::$gl_func(uniform_location, value as $cast_type);
+                    gl::$gl_func(self.get_uniform_location(name), value as $cast_type);
+                }
+            }
+        }
+    };
+    // Matrix types
+    ($type:ty, $func_name:ident, $gl_func:ident) => {
+        impl Shader {
+            pub fn $func_name(&mut self, name: &str, value: $type) {
+                unsafe {
+                    gl::$gl_func(
+                        self.get_uniform_location(name),
+                        1,
+                        gl::FALSE,
+                        value.as_ptr(),
+                    );
                 }
             }
         }
@@ -73,6 +95,7 @@ macro_rules! impl_set_uniform {
 impl_set_uniform!(bool, set_bool, Uniform1i, i32);
 impl_set_uniform!(i32, set_i32, Uniform1i, i32);
 impl_set_uniform!(f32, set_f32, Uniform1f, f32);
+impl_set_uniform!(nalgebra_glm::TMat4<f32>, set_mat4_f32, UniformMatrix4fv);
 
 fn compile_shader(type_: GLenum, source: &str) -> GLuint {
     unsafe {
