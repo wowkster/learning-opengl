@@ -4,7 +4,7 @@ extern crate gl;
 extern crate glfw;
 
 use std::ffi::{c_void, CStr};
-use std::mem::size_of;
+use std::mem::{size_of, size_of_val};
 use std::ptr::null;
 
 use gl::types::*;
@@ -12,8 +12,8 @@ use gl::types::*;
 use glfw::{fail_on_errors, Window, WindowEvent};
 use glfw::{Action, Context, Key, OpenGlProfileHint, WindowHint};
 
-type VertexBuffer = [f32; 9];
-const VERTICES: VertexBuffer = [-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
+type Vertex = [f32; 3];
+const VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("../shaders/frag.glsl");
@@ -25,6 +25,9 @@ fn main() {
     // Hint to GLFW what kind of window we want
     glfw.window_hint(WindowHint::ContextVersion(3, 3));
     glfw.window_hint(WindowHint::OpenGlProfile(OpenGlProfileHint::Core));
+
+    #[cfg(target_os = "macos")]
+    glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
 
     // Create a window for rendering
     let (mut window, events) = glfw
@@ -67,7 +70,7 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            size_of::<VertexBuffer>() as isize,
+            size_of_val(&VERTICES) as isize,
             VERTICES.as_ptr() as *const c_void,
             gl::STATIC_DRAW,
         );
@@ -80,7 +83,7 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (3 * size_of::<f32>()) as i32,
+            size_of::<Vertex>() as i32,
             null(),
         );
         gl::EnableVertexAttribArray(0);
@@ -120,12 +123,7 @@ fn process_input(window: &mut Window) {
 fn compile_shader(type_: GLenum, source: &str) -> GLuint {
     unsafe {
         let shader = gl::CreateShader(type_);
-        gl::ShaderSource(
-            shader,
-            1,
-            &(source.as_ptr().cast()),
-            &(source.len() as i32),
-        );
+        gl::ShaderSource(shader, 1, &(source.as_ptr().cast()), &(source.len() as i32));
         gl::CompileShader(shader);
 
         // Check for shader compile errors
