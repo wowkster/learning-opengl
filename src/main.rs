@@ -13,6 +13,8 @@ use gl::types::*;
 use glfw::{fail_on_errors, Window, WindowEvent};
 use glfw::{Action, Context, Key, OpenGlProfileHint, WindowHint};
 
+use nalgebra_glm as glm;
+
 use c_str_macro::c_str;
 use shader::Shader;
 
@@ -65,6 +67,20 @@ const VERTICES: [f32; 180] = [
      0.5,  0.5,  0.5,  1.0, 0.0,
     -0.5,  0.5,  0.5,  0.0, 0.0,
     -0.5,  0.5, -0.5,  0.0, 1.0,
+];
+
+#[rustfmt::skip]
+const CUBE_POSITIONS: [[f32; 3]; 10] = [
+    [  0.0,  0.0,  0.0  ],
+    [  2.0,  5.0, -15.0 ],
+    [ -1.5, -2.2, -2.5  ],
+    [ -3.8, -2.0, -12.3 ],
+    [  2.4, -0.4, -3.5  ],
+    [ -1.7,  3.0, -7.5  ],
+    [  1.3, -2.0, -2.5  ],
+    [  1.5,  2.0, -2.5  ],
+    [  1.5,  0.2, -1.5  ],
+    [ -1.3,  1.0, -1.5  ],
 ];
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
@@ -237,8 +253,21 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
 
+    // Create our view matrix
+    let mut view = glm::identity::<f32, 4>();
+    view = glm::translate(&view, &glm::vec3(0.0, 0.0, -3.0));
+
+    // Create our projection matrix
+    let mut proj = glm::perspective(
+        SCREEN_WIDTH as f32 / SCREEN_HEIGHT as f32,
+        f32::to_radians(45.0),
+        0.1,
+        100.0,
+    );
+
     // Main render loop
     while !window.should_close() {
+        // Check window events
         process_input(&mut window);
 
         // Draw the background
@@ -247,45 +276,43 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        // Create our model matrix
-        let mut model = nalgebra_glm::identity::<f32, 4>();
-        model = nalgebra_glm::rotate(
-            &model,
-            glfw.get_time() as f32 * f32::to_radians(50.0),
-            &nalgebra_glm::vec3(0.5, 1.0, 0.0),
-        );
-
-        // Create our view matrix
-        let mut view = nalgebra_glm::identity::<f32, 4>();
-        view = nalgebra_glm::translate(&view, &nalgebra_glm::vec3(0.0, 0.0, -3.0));
-
-        // Create our projection matrix
-        let mut proj = nalgebra_glm::perspective(
-            SCREEN_WIDTH as f32 / SCREEN_HEIGHT as f32,
-            f32::to_radians(45.0),
-            0.1,
-            100.0,
-        );
-
-        // Draw our triangle
+        // Bind GL Objects
         unsafe {
-            shader_program.use_program();
-
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, container_texture);
-
+            
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, awesome_face_texture);
+            
+            gl::BindVertexArray(vao);
+        }
 
-            shader_program.set_i32("texture1", 0);
-            shader_program.set_i32("texture2", 1);
+        // Set Shader Uniforms
+        shader_program.use_program();
+        
+        shader_program.set_i32("texture1", 0);
+        shader_program.set_i32("texture2", 1);
+
+        shader_program.set_mat4_f32("view", view);
+        shader_program.set_mat4_f32("projection", proj);
+
+        // Draw our cubes
+        for (i, cube) in CUBE_POSITIONS.iter().enumerate() {
+            // Create our model matrix
+            let mut model = glm::identity::<f32, 4>();
+            model = glm::translate(&model, &glm::make_vec3(cube));
+            model = glm::rotate(
+                &model,
+                f32::to_radians(20.0 * i as f32),
+                &glm::vec3(1.0, 0.3, 0.5),
+            );
 
             shader_program.set_mat4_f32("model", model);
-            shader_program.set_mat4_f32("view", view);
-            shader_program.set_mat4_f32("projection", proj);
 
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            // Draw the cube
+            unsafe {
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
         }
 
         // Poll for events
