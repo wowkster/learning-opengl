@@ -10,6 +10,7 @@ use std::ptr::null;
 use std::sync::RwLock;
 
 use c_str_macro::c_str;
+use camera::CameraMovement;
 use gl::types::*;
 use glfw::{fail_on_errors, SwapInterval, Window, WindowEvent};
 use glfw::{Action, Context, Key, OpenGlProfileHint, WindowHint};
@@ -18,6 +19,9 @@ use nalgebra_glm as glm;
 use shader::Shader;
 use texture::{ActiveTextureSlot, Texture2d};
 
+use crate::camera::Camera;
+
+mod camera;
 mod shader;
 mod texture;
 
@@ -88,12 +92,8 @@ const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("../shaders/frag.glsl");
 
 lazy_static::lazy_static! {
-    static ref CAMERA_POS: RwLock<glm::Vec3> = RwLock::new(glm::vec3(0.0, 0.0, 3.0));
-    static ref CAMERA_FRONT: RwLock<glm::Vec3> = RwLock::new(glm::vec3(0.0, 0.0, -1.0));
-    static ref CAMERA_UP: glm::Vec3 = glm::vec3(0.0, 1.0, 0.0);
+    static ref CAMERA: RwLock<Camera> = RwLock::new(Camera::default());
 }
-
-static mut CAMERA_FOV: f32 = 45.0;
 
 static mut DELTA_TIME: f32 = 0.0;
 static mut LAST_FRAME_TIME: f32 = 0.0;
@@ -205,6 +205,9 @@ fn main() {
 
     // Main render loop
     while !window.should_close() {
+        // Poll for events
+        glfw.poll_events();
+
         // Calculate Frame Times
         let current_time = glfw.get_time() as f32;
         unsafe {
@@ -230,19 +233,13 @@ fn main() {
         }
 
         // Create our view matrix
-        let (pos, front, up) = (
-            CAMERA_POS.read().unwrap(),
-            CAMERA_FRONT.read().unwrap(),
-            &CAMERA_UP,
-        );
-        let view = glm::look_at(&pos, &(*pos + *front), up);
-        drop(pos);
-        drop(front);
+        let camera = CAMERA.read().unwrap();
+        let view = camera.get_view_matrix();
 
         // Create our projection matrix
         let proj = glm::perspective(
             SCREEN_WIDTH as f32 / SCREEN_HEIGHT as f32,
-            f32::to_radians(unsafe { CAMERA_FOV }),
+            f32::to_radians(camera.fov),
             0.1,
             100.0,
         );
@@ -275,9 +272,6 @@ fn main() {
             }
         }
 
-        // Poll for events
-        glfw.poll_events();
-
         // Swap the front and back buffers
         window.swap_buffers();
     }
@@ -288,32 +282,27 @@ fn process_input(window: &mut Window) {
         window.set_should_close(true)
     }
 
-    let camera_speed: f32 = 2.5 * unsafe { DELTA_TIME };
+    let delta_time = unsafe { DELTA_TIME };
 
-    let (mut pos, front, up) = (
-        CAMERA_POS.write().unwrap(),
-        CAMERA_FRONT.read().unwrap(),
-        &CAMERA_UP,
-    );
+    let mut camera = CAMERA.write().unwrap();
 
     if window.get_key(Key::W) == Action::Press {
-        *pos += camera_speed * *front;
+        camera.process_keyboard(CameraMovement::Forward, delta_time);
     }
     if window.get_key(Key::S) == Action::Press {
-        *pos -= camera_speed * *front;
+        camera.process_keyboard(CameraMovement::Backward, delta_time);
     }
     if window.get_key(Key::A) == Action::Press {
-        *pos -= camera_speed * glm::normalize(&glm::cross(&front, up));
+        camera.process_keyboard(CameraMovement::Left, delta_time);
     }
     if window.get_key(Key::D) == Action::Press {
-        *pos += camera_speed * glm::normalize(&glm::cross(&front, up));
+        camera.process_keyboard(CameraMovement::Right, delta_time);
     }
-
     if window.get_key(Key::Space) == Action::Press {
-        *pos += camera_speed * **up;
+        camera.process_keyboard(CameraMovement::Up, delta_time);
     }
     if window.get_key(Key::LeftShift) == Action::Press {
-        *pos -= camera_speed * **up;
+        camera.process_keyboard(CameraMovement::Down, delta_time);
     }
 }
 
@@ -321,10 +310,9 @@ fn mouse_callback(x: f32, y: f32) {
     static mut LAST_X: f32 = SCREEN_WIDTH as f32 / 2.0;
     static mut LAST_Y: f32 = SCREEN_HEIGHT as f32 / 2.0;
 
-    static mut YAW: f32 = -90.0;
-    static mut PITCH: f32 = 0.0;
-
     static mut FIRST_MOUSE: bool = true;
+
+    let mut camera = CAMERA.write().unwrap();
 
     unsafe {
         if FIRST_MOUSE {
@@ -333,50 +321,18 @@ fn mouse_callback(x: f32, y: f32) {
             LAST_Y = y;
         }
 
-        let mut x_offset = x - LAST_X;
-        let mut y_offset = LAST_Y - y;
+        let x_offset = x - LAST_X;
+        let y_offset = LAST_Y - y;
+
         LAST_X = x;
         LAST_Y = y;
 
-        const MOUSE_SENSITIVITY: f32 = 0.1;
-        x_offset *= MOUSE_SENSITIVITY;
-        y_offset *= MOUSE_SENSITIVITY;
-
-        YAW += x_offset;
-        PITCH += y_offset;
-
-        if PITCH > 89.0 {
-            PITCH = 89.0
-        }
-        if PITCH < -89.0 {
-            PITCH = -89.0
-        }
-
-        let direction = glm::vec3(
-            f32::cos(f32::to_radians(YAW)) * f32::cos(f32::to_radians(PITCH)),
-            f32::sin(f32::to_radians(PITCH)),
-            f32::sin(f32::to_radians(YAW)) * f32::cos(f32::to_radians(PITCH)),
-        );
-
-        let mut front = CAMERA_FRONT.write().unwrap();
-        *front = glm::normalize(&direction);
+        camera.process_mouse_movement(x_offset, y_offset, true);
     }
 }
 
 fn scroll_callback(x_offset: f32, y_offset: f32) {
-    const SCROLL_SENSITIVITY: f32 = 1.0;
+    let mut camera = CAMERA.write().unwrap();
 
-    const FOV_MIN: f32 = 1.0;
-    const FOV_MAX: f32 = 90.0;
-
-    unsafe {
-        CAMERA_FOV -= y_offset * SCROLL_SENSITIVITY;
-
-        if CAMERA_FOV < FOV_MIN {
-            CAMERA_FOV = FOV_MIN;
-        }
-        if CAMERA_FOV > FOV_MAX {
-            CAMERA_FOV = FOV_MAX;
-        }
-    }
+    camera.process_mouse_scroll(y_offset)
 }
