@@ -67,7 +67,7 @@ fn main() {
     });
 
     // Initialize the shader program
-    let shader_program = Shader::new(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
+    let mut shader_program = Shader::new(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
 
     // Initialize VAO
     let mut vao: u32 = 0;
@@ -134,11 +134,11 @@ fn main() {
     }
 
     // Initialize Textures
-    let mut texture: u32 = 0;
+    let mut container_texture: u32 = 0;
     unsafe {
         // Generate the texture object
-        gl::GenTextures(1, &mut texture);
-        gl::BindTexture(gl::TEXTURE_2D, texture);
+        gl::GenTextures(1, &mut container_texture);
+        gl::BindTexture(gl::TEXTURE_2D, container_texture);
 
         // Set the texture wrapping/filtering options (on the currently bound texture object)
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
@@ -170,6 +170,42 @@ fn main() {
         gl::GenerateMipmap(gl::TEXTURE_2D);
     }
 
+    let mut awesome_face_texture: u32 = 0;
+    unsafe {
+        // Generate the texture object
+        gl::GenTextures(1, &mut awesome_face_texture);
+        gl::BindTexture(gl::TEXTURE_2D, awesome_face_texture);
+
+        // Set the texture wrapping/filtering options (on the currently bound texture object)
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_MIN_FILTER,
+            gl::LINEAR_MIPMAP_LINEAR as i32,
+        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+        // Load and generate the texture data
+        let awesome_face_image = image::io::Reader::open("assets/awesomeface.png")
+            .expect("Failed to load texture file")
+            .decode()
+            .expect("Failed to decode texture file")
+            .flipv();
+
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGB as i32,
+            awesome_face_image.width() as i32,
+            awesome_face_image.height() as i32,
+            0,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            awesome_face_image.as_bytes().as_ptr().cast(),
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+    }
     
     // Unbind Buffers
     unsafe {
@@ -196,7 +232,16 @@ fn main() {
         // Draw our triangle
         unsafe {
             shader_program.use_program();
-            gl::BindTexture(gl::TEXTURE_2D, texture);
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, container_texture);
+            
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, awesome_face_texture);
+            
+            shader_program.set_i32("texture1", 0);
+            shader_program.set_i32("texture2", 1);
+
             gl::BindVertexArray(vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, null());
         }
