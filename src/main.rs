@@ -22,15 +22,50 @@ const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 
 #[rustfmt::skip]
-const VERTICES: [f32; 32] = [
-    // positions      // colors        // texture coords
-    0.5,  0.5, 0.0,   1.0, 0.0, 0.0,   1.0, 1.0,   // top right
-    0.5, -0.5, 0.0,   0.0, 1.0, 0.0,   1.0, 0.0,   // bottom right
-   -0.5, -0.5, 0.0,   0.0, 0.0, 1.0,   0.0, 0.0,   // bottom left
-   -0.5,  0.5, 0.0,   1.0, 1.0, 0.0,   0.0, 1.0    // top left 
-];
+const VERTICES: [f32; 180] = [
+    // vertices        // texture coords
+    -0.5, -0.5, -0.5,  0.0, 0.0,
+     0.5, -0.5, -0.5,  1.0, 0.0,
+     0.5,  0.5, -0.5,  1.0, 1.0,
+     0.5,  0.5, -0.5,  1.0, 1.0,
+    -0.5,  0.5, -0.5,  0.0, 1.0,
+    -0.5, -0.5, -0.5,  0.0, 0.0,
 
-const INDICES: [u32; 6] = [0, 1, 3, 1, 2, 3];
+    -0.5, -0.5,  0.5,  0.0, 0.0,
+     0.5, -0.5,  0.5,  1.0, 0.0,
+     0.5,  0.5,  0.5,  1.0, 1.0,
+     0.5,  0.5,  0.5,  1.0, 1.0,
+    -0.5,  0.5,  0.5,  0.0, 1.0,
+    -0.5, -0.5,  0.5,  0.0, 0.0,
+
+    -0.5,  0.5,  0.5,  1.0, 0.0,
+    -0.5,  0.5, -0.5,  1.0, 1.0,
+    -0.5, -0.5, -0.5,  0.0, 1.0,
+    -0.5, -0.5, -0.5,  0.0, 1.0,
+    -0.5, -0.5,  0.5,  0.0, 0.0,
+    -0.5,  0.5,  0.5,  1.0, 0.0,
+
+     0.5,  0.5,  0.5,  1.0, 0.0,
+     0.5,  0.5, -0.5,  1.0, 1.0,
+     0.5, -0.5, -0.5,  0.0, 1.0,
+     0.5, -0.5, -0.5,  0.0, 1.0,
+     0.5, -0.5,  0.5,  0.0, 0.0,
+     0.5,  0.5,  0.5,  1.0, 0.0,
+
+    -0.5, -0.5, -0.5,  0.0, 1.0,
+     0.5, -0.5, -0.5,  1.0, 1.0,
+     0.5, -0.5,  0.5,  1.0, 0.0,
+     0.5, -0.5,  0.5,  1.0, 0.0,
+    -0.5, -0.5,  0.5,  0.0, 0.0,
+    -0.5, -0.5, -0.5,  0.0, 1.0,
+
+    -0.5,  0.5, -0.5,  0.0, 1.0,
+     0.5,  0.5, -0.5,  1.0, 1.0,
+     0.5,  0.5,  0.5,  1.0, 0.0,
+     0.5,  0.5,  0.5,  1.0, 0.0,
+    -0.5,  0.5,  0.5,  0.0, 0.0,
+    -0.5,  0.5, -0.5,  0.0, 1.0,
+];
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("../shaders/frag.glsl");
@@ -94,19 +129,6 @@ fn main() {
         );
     }
 
-    // Initialize EBO
-    let mut ebo: u32 = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            size_of_val(&INDICES) as isize,
-            INDICES.as_ptr() as *const c_void,
-            gl::STATIC_DRAW,
-        );
-    }
-
     // Link Vertex Attributes
     unsafe {
         gl::VertexAttribPointer(
@@ -114,28 +136,19 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            8 * size_of::<f32>() as i32,
+            5 * size_of::<f32>() as i32,
             0 as *const _,
         );
         gl::EnableVertexAttribArray(0);
         gl::VertexAttribPointer(
             1,
-            3,
+            2,
             gl::FLOAT,
             gl::FALSE,
-            8 * size_of::<f32>() as i32,
+            5 * size_of::<f32>() as i32,
             (3 * size_of::<f32>()) as *const _,
         );
         gl::EnableVertexAttribArray(1);
-        gl::VertexAttribPointer(
-            2,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            8 * size_of::<f32>() as i32,
-            (6 * size_of::<f32>()) as *const _,
-        );
-        gl::EnableVertexAttribArray(2);
     }
 
     // Initialize Textures
@@ -219,6 +232,11 @@ fn main() {
         gl::BindTexture(gl::TEXTURE_2D, 0);
     }
 
+    // Enable Depth Testing
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
+
     // Main render loop
     while !window.should_close() {
         process_input(&mut window);
@@ -226,15 +244,15 @@ fn main() {
         // Draw the background
         unsafe {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
         // Create our model matrix
         let mut model = nalgebra_glm::identity::<f32, 4>();
         model = nalgebra_glm::rotate(
             &model,
-            f32::to_radians(-55.0),
-            &nalgebra_glm::vec3(1.0, 0.0, 0.0),
+            glfw.get_time() as f32 * f32::to_radians(50.0),
+            &nalgebra_glm::vec3(0.5, 1.0, 0.0),
         );
 
         // Create our view matrix
@@ -267,7 +285,7 @@ fn main() {
             shader_program.set_mat4_f32("projection", proj);
 
             gl::BindVertexArray(vao);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, null());
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
 
         // Poll for events
