@@ -12,19 +12,17 @@ use gl::types::*;
 use glfw::{fail_on_errors, Window, WindowEvent};
 use glfw::{Action, Context, Key, OpenGlProfileHint, WindowHint};
 
+use c_str_macro::c_str;
+
 type Vertex = [f32; 3];
-const VERTICES: [Vertex; 4] = [
-    [0.5, 0.5, 0.0],   // top right
+const VERTICES: [Vertex; 3] = [
+    [-0.5, -0.5, 0.0], // top right
     [0.5, -0.5, 0.0],  // bottom right
-    [-0.5, -0.5, 0.0], // bottom left
-    [-0.5, 0.5, 0.0],  // top left
+    [0.0, 0.5, 0.0],   // bottom left
 ];
 
 type Triangle = [u32; 3];
-const INDICES: [Triangle; 2] = [
-    [0, 1, 3], // first triangle
-    [1, 2, 3], // second triangle
-];
+const INDICES: [Triangle; 1] = [[0, 1, 2]];
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("../shaders/frag.glsl");
@@ -134,9 +132,19 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
+        // Update shader uniforms
+        unsafe {
+            let time_value = glfw.get_time() as f32;
+            let green_value = (f32::sin(time_value) / 2.0) + 0.5;
+            let vertex_color_location =
+                gl::GetUniformLocation(shader_program, c_str!("ourColor").as_ptr());
+
+            gl::UseProgram(shader_program);
+            gl::Uniform4f(vertex_color_location, 0.0, green_value, 0.0, 1.0);
+        }
+
         // Draw our triangle
         unsafe {
-            gl::UseProgram(shader_program);
             gl::BindVertexArray(vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, null());
         }
