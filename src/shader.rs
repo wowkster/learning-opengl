@@ -45,6 +45,10 @@ impl Shader {
             gl::UseProgram(self.id);
         }
     }
+
+    pub unsafe fn id(&self) -> GLuint {
+        self.id
+    }
 }
 
 macro_rules! impl_set_uniform {
@@ -54,6 +58,11 @@ macro_rules! impl_set_uniform {
                 unsafe {
                     let name = CString::new(name).expect("Could not convert name to CString");
                     let uniform_location = gl::GetUniformLocation(self.id, name.as_ptr());
+
+                    if uniform_location < 0 {
+                        panic!("Could not set uniform: {}", name.to_str().unwrap());
+                    }
+                    
                     gl::$gl_func(uniform_location, value as $cast_type);
                 }
             }

@@ -214,11 +214,6 @@ fn main() {
         gl::BindTexture(gl::TEXTURE_2D, 0);
     }
 
-    // Uncomment this to draw in wireframe mode
-    // unsafe {
-    //     gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-    // }
-
     // Main render loop
     while !window.should_close() {
         process_input(&mut window);
@@ -228,6 +223,11 @@ fn main() {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
+
+        // Create our transformation matrix
+        let mut transform = nalgebra_glm::identity::<f32, 4>();
+        transform = nalgebra_glm::translate(&transform, &nalgebra_glm::vec3(0.5, -0.5, 0.0));
+        transform = nalgebra_glm::rotate(&transform, glfw.get_time() as f32, &nalgebra_glm::vec3(0., 0., 1.));
 
         // Draw our triangle
         unsafe {
@@ -241,6 +241,9 @@ fn main() {
             
             shader_program.set_i32("texture1", 0);
             shader_program.set_i32("texture2", 1);
+
+            let transform_loc = gl::GetUniformLocation(shader_program.id(), c_str!("transform").as_ptr());
+            gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, transform.as_ptr());
 
             gl::BindVertexArray(vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, null());
