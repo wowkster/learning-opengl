@@ -29,70 +29,61 @@ const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 
 #[rustfmt::skip]
-const VERTICES: [f32; 180] = [
-    // vertices        // texture coords
-    -0.5, -0.5, -0.5,  0.0, 0.0,
-     0.5, -0.5, -0.5,  1.0, 0.0,
-     0.5,  0.5, -0.5,  1.0, 1.0,
-     0.5,  0.5, -0.5,  1.0, 1.0,
-    -0.5,  0.5, -0.5,  0.0, 1.0,
-    -0.5, -0.5, -0.5,  0.0, 0.0,
+const VERTICES: [f32; 108] = [
+    // vertices
+    -0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5,  0.5, -0.5,
+     0.5,  0.5, -0.5,
+    -0.5,  0.5, -0.5,
+    -0.5, -0.5, -0.5,
 
-    -0.5, -0.5,  0.5,  0.0, 0.0,
-     0.5, -0.5,  0.5,  1.0, 0.0,
-     0.5,  0.5,  0.5,  1.0, 1.0,
-     0.5,  0.5,  0.5,  1.0, 1.0,
-    -0.5,  0.5,  0.5,  0.0, 1.0,
-    -0.5, -0.5,  0.5,  0.0, 0.0,
+    -0.5, -0.5,  0.5,
+     0.5, -0.5,  0.5,
+     0.5,  0.5,  0.5,
+     0.5,  0.5,  0.5,
+    -0.5,  0.5,  0.5,
+    -0.5, -0.5,  0.5,
 
-    -0.5,  0.5,  0.5,  1.0, 0.0,
-    -0.5,  0.5, -0.5,  1.0, 1.0,
-    -0.5, -0.5, -0.5,  0.0, 1.0,
-    -0.5, -0.5, -0.5,  0.0, 1.0,
-    -0.5, -0.5,  0.5,  0.0, 0.0,
-    -0.5,  0.5,  0.5,  1.0, 0.0,
+    -0.5,  0.5,  0.5,
+    -0.5,  0.5, -0.5,
+    -0.5, -0.5, -0.5,
+    -0.5, -0.5, -0.5,
+    -0.5, -0.5,  0.5,
+    -0.5,  0.5,  0.5,
 
-     0.5,  0.5,  0.5,  1.0, 0.0,
-     0.5,  0.5, -0.5,  1.0, 1.0,
-     0.5, -0.5, -0.5,  0.0, 1.0,
-     0.5, -0.5, -0.5,  0.0, 1.0,
-     0.5, -0.5,  0.5,  0.0, 0.0,
-     0.5,  0.5,  0.5,  1.0, 0.0,
+     0.5,  0.5,  0.5,
+     0.5,  0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5,  0.5,
+     0.5,  0.5,  0.5,
 
-    -0.5, -0.5, -0.5,  0.0, 1.0,
-     0.5, -0.5, -0.5,  1.0, 1.0,
-     0.5, -0.5,  0.5,  1.0, 0.0,
-     0.5, -0.5,  0.5,  1.0, 0.0,
-    -0.5, -0.5,  0.5,  0.0, 0.0,
-    -0.5, -0.5, -0.5,  0.0, 1.0,
+    -0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5,  0.5,
+     0.5, -0.5,  0.5,
+    -0.5, -0.5,  0.5,
+    -0.5, -0.5, -0.5,
 
-    -0.5,  0.5, -0.5,  0.0, 1.0,
-     0.5,  0.5, -0.5,  1.0, 1.0,
-     0.5,  0.5,  0.5,  1.0, 0.0,
-     0.5,  0.5,  0.5,  1.0, 0.0,
-    -0.5,  0.5,  0.5,  0.0, 0.0,
-    -0.5,  0.5, -0.5,  0.0, 1.0,
+    -0.5,  0.5, -0.5,
+     0.5,  0.5, -0.5,
+     0.5,  0.5,  0.5,
+     0.5,  0.5,  0.5,
+    -0.5,  0.5,  0.5,
+    -0.5,  0.5, -0.5,
 ];
 
-#[rustfmt::skip]
-const CUBE_POSITIONS: [[f32; 3]; 10] = [
-    [  0.0,  0.0,  0.0  ],
-    [  2.0,  5.0, -15.0 ],
-    [ -1.5, -2.2, -2.5  ],
-    [ -3.8, -2.0, -12.3 ],
-    [  2.4, -0.4, -3.5  ],
-    [ -1.7,  3.0, -7.5  ],
-    [  1.3, -2.0, -2.5  ],
-    [  1.5,  2.0, -2.5  ],
-    [  1.5,  0.2, -1.5  ],
-    [ -1.3,  1.0, -1.5  ],
-];
-
-const VERTEX_SHADER_SOURCE: &str = include_str!("../shaders/vert.glsl");
-const FRAGMENT_SHADER_SOURCE: &str = include_str!("../shaders/frag.glsl");
+const CUBE_POSITION: [f32; 3] = [0.0, 0.0, 0.0];
+const LIGHT_POSITION: [f32; 3] = [1.2, 1.0, 2.0];
 
 lazy_static::lazy_static! {
-    static ref CAMERA: RwLock<Camera> = RwLock::new(Camera::default());
+    static ref CAMERA: RwLock<Camera> = {
+        let mut camera = Camera::default();
+        camera.position = glm::vec3(0.0, 0.0, 3.0);
+
+        RwLock::new(camera)
+    };
 }
 
 static mut DELTA_TIME: f32 = 0.0;
@@ -141,14 +132,21 @@ fn main() {
     window.set_cursor_pos_callback(|x, y| mouse_callback(x as f32, y as f32));
     window.set_scroll_callback(|x, y| scroll_callback(x as f32, y as f32));
 
-    // Initialize the shader program
-    let mut shader_program = Shader::new(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
+    // Initialize the shader programs
+    let mut cube_shader = Shader::new(
+        include_str!("../shaders/vert.glsl"),
+        include_str!("../shaders/cube.frag.glsl"),
+    );
+    let mut light_shader = Shader::new(
+        include_str!("../shaders/vert.glsl"),
+        include_str!("../shaders/light.frag.glsl"),
+    );
 
-    // Initialize VAO
-    let mut vao: u32 = 0;
+    // Initialize Cube VAO
+    let mut cube_vao: u32 = 0;
     unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-        gl::BindVertexArray(vao);
+        gl::GenVertexArrays(1, &mut cube_vao);
+        gl::BindVertexArray(cube_vao);
     }
 
     // Initialize VBO
@@ -171,25 +169,30 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            5 * size_of::<f32>() as i32,
+            3 * size_of::<f32>() as i32,
             0 as *const _,
         );
         gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(
-            1,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            5 * size_of::<f32>() as i32,
-            (3 * size_of::<f32>()) as *const _,
-        );
-        gl::EnableVertexAttribArray(1);
     }
 
-    // Initialize Textures
-    let container_texture = Texture2d::new("assets/container.jpg", texture::TextureFormat::RGB);
-    let awesome_face_texture =
-        Texture2d::new("assets/awesomeface.png", texture::TextureFormat::RGBA);
+    // Initialize Light VAO
+    let mut light_vao: u32 = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut light_vao);
+        gl::BindVertexArray(light_vao);
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            3 * size_of::<f32>() as i32,
+            0 as *const _,
+        );
+        gl::EnableVertexAttribArray(0);
+    }
 
     // Unbind Buffers
     unsafe {
@@ -220,16 +223,8 @@ fn main() {
 
         // Draw the background
         unsafe {
-            gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+            gl::ClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
-
-        // Bind GL Objects
-        container_texture.bind_to(ActiveTextureSlot::Texture0);
-        awesome_face_texture.bind_to(ActiveTextureSlot::Texture1);
-
-        unsafe {
-            gl::BindVertexArray(vao);
         }
 
         // Create our view matrix
@@ -244,30 +239,46 @@ fn main() {
             100.0,
         );
 
-        // Set Shader Uniforms
-        shader_program.use_program();
-
-        shader_program.set_i32("texture1", 0);
-        shader_program.set_i32("texture2", 1);
-
-        shader_program.set_mat4_f32("view", view);
-        shader_program.set_mat4_f32("projection", proj);
-
-        // Draw our cubes
-        for (i, cube) in CUBE_POSITIONS.iter().enumerate() {
+        // Render the cube
+        {
             // Create our model matrix
             let mut model = glm::identity::<f32, 4>();
-            model = glm::translate(&model, &glm::make_vec3(cube));
-            model = glm::rotate(
-                &model,
-                f32::to_radians(20.0 * i as f32),
-                &glm::vec3(1.0, 0.3, 0.5),
-            );
+            model = glm::translate(&model, &glm::make_vec3(&CUBE_POSITION));
 
-            shader_program.set_mat4_f32("model", model);
+            // Set Shader Uniforms
+            cube_shader.use_program();
+
+            cube_shader.set_mat4("model", model);
+            cube_shader.set_mat4("view", view);
+            cube_shader.set_mat4("projection", proj);
+
+            cube_shader.set_vec3("objectColor", glm::vec3(1.0, 0.5, 0.31));
+            cube_shader.set_vec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
 
             // Draw the cube
             unsafe {
+                gl::BindVertexArray(cube_vao);
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
+        }
+
+        // Render the light
+        {
+            // Create our model matrix
+            let mut model = glm::identity::<f32, 4>();
+            model = glm::translate(&model, &glm::make_vec3(&LIGHT_POSITION));
+            model = glm::scale(&model, &glm::vec3(0.2, 0.2, 0.2));
+
+            // Set Shader Uniforms
+            light_shader.use_program();
+
+            light_shader.set_mat4("model", model);
+            light_shader.set_mat4("view", view);
+            light_shader.set_mat4("projection", proj);
+
+            // Draw the cube
+            unsafe {
+                gl::BindVertexArray(light_vao);
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
         }
@@ -279,7 +290,8 @@ fn main() {
 
 fn process_input(window: &mut Window) {
     if window.get_key(Key::Escape) == Action::Press {
-        window.set_should_close(true)
+        window.set_should_close(true);
+        return;
     }
 
     let delta_time = unsafe { DELTA_TIME };

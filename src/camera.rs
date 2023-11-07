@@ -41,7 +41,7 @@ impl Default for Camera {
             pitch: Self::DEFAULT_PITCH,
 
             movement_speed: 2.5,
-            mouse_sensitivity: 0.1,
+            mouse_sensitivity: 0.075,
             scroll_sensitivity: 1.0,
             fov: 45.0,
         }

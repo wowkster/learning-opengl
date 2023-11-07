@@ -4,6 +4,7 @@ use std::{
 };
 
 use gl::types::*;
+use nalgebra_glm as glm;
 
 pub struct Shader {
     id: GLuint,
@@ -64,38 +65,123 @@ impl Shader {
     }
 }
 
-macro_rules! impl_set_uniform {
-    // Standard Type
+macro_rules! impl_set_uniform_1 {
     ($type:ty, $func_name:ident, $gl_func:ident, $cast_type:ty) => {
-        impl Shader {
-            pub fn $func_name(&mut self, name: &str, value: $type) {
-                unsafe {
-                    gl::$gl_func(self.get_uniform_location(name), value as $cast_type);
-                }
-            }
-        }
-    };
-    // Matrix types
-    ($type:ty, $func_name:ident, $gl_func:ident) => {
-        impl Shader {
-            pub fn $func_name(&mut self, name: &str, value: $type) {
-                unsafe {
-                    gl::$gl_func(
-                        self.get_uniform_location(name),
-                        1,
-                        gl::FALSE,
-                        value.as_ptr(),
-                    );
-                }
+        pub fn $func_name(&mut self, name: &str, value: $type) {
+            unsafe {
+                gl::$gl_func(self.get_uniform_location(name), value as $cast_type);
             }
         }
     };
 }
 
-impl_set_uniform!(bool, set_bool, Uniform1i, i32);
-impl_set_uniform!(i32, set_i32, Uniform1i, i32);
-impl_set_uniform!(f32, set_f32, Uniform1f, f32);
-impl_set_uniform!(nalgebra_glm::TMat4<f32>, set_mat4_f32, UniformMatrix4fv);
+macro_rules! impl_set_uniform_2 {
+    ($type:ty, $func_name:ident, $gl_func:ident, $cast_type:ty) => {
+        pub fn $func_name(&mut self, name: &str, v0: $type, v1: $type) {
+            unsafe {
+                gl::$gl_func(
+                    self.get_uniform_location(name),
+                    v0 as $cast_type,
+                    v1 as $cast_type,
+                );
+            }
+        }
+    };
+}
+
+macro_rules! impl_set_uniform_3 {
+    ($type:ty, $func_name:ident, $gl_func:ident, $cast_type:ty) => {
+        pub fn $func_name(&mut self, name: &str, v0: $type, v1: $type, v2: $type) {
+            unsafe {
+                gl::$gl_func(
+                    self.get_uniform_location(name),
+                    v0 as $cast_type,
+                    v1 as $cast_type,
+                    v2 as $cast_type,
+                );
+            }
+        }
+    };
+}
+
+macro_rules! impl_set_uniform_4 {
+    ($type:ty, $func_name:ident, $gl_func:ident, $cast_type:ty) => {
+        pub fn $func_name(&mut self, name: &str, v0: $type, v1: $type, v2: $type, v3: $type) {
+            unsafe {
+                gl::$gl_func(
+                    self.get_uniform_location(name),
+                    v0 as $cast_type,
+                    v1 as $cast_type,
+                    v2 as $cast_type,
+                    v3 as $cast_type,
+                );
+            }
+        }
+    };
+}
+
+macro_rules! impl_set_uniform_vector {
+    ($type:ty, $func_name:ident, $gl_func:ident) => {
+        pub fn $func_name(&mut self, name: &str, value: $type) {
+            unsafe {
+                gl::$gl_func(self.get_uniform_location(name), 1, value.as_ptr());
+            }
+        }
+    };
+}
+
+macro_rules! impl_set_uniform_matrix {
+    ($type:ty, $func_name:ident, $gl_func:ident) => {
+        pub fn $func_name(&mut self, name: &str, value: $type) {
+            unsafe {
+                gl::$gl_func(
+                    self.get_uniform_location(name),
+                    1,
+                    gl::FALSE,
+                    value.as_ptr(),
+                );
+            }
+        }
+    };
+}
+
+impl Shader {
+    impl_set_uniform_1!(f32, set_f32, Uniform1f, f32);
+    impl_set_uniform_2!(f32, set_f32_2, Uniform2f, f32);
+    impl_set_uniform_3!(f32, set_f32_3, Uniform3f, f32);
+    impl_set_uniform_4!(f32, set_f32_4, Uniform4f, f32);
+
+    impl_set_uniform_1!(i32, set_i32, Uniform1i, i32);
+    impl_set_uniform_2!(i32, set_i32_2, Uniform2i, i32);
+    impl_set_uniform_3!(i32, set_i32_3, Uniform3i, i32);
+    impl_set_uniform_4!(i32, set_i32_4, Uniform4i, i32);
+
+    impl_set_uniform_1!(u32, set_u32, Uniform1ui, u32);
+    impl_set_uniform_2!(u32, set_u32_2, Uniform2ui, u32);
+    impl_set_uniform_3!(u32, set_u32_3, Uniform3ui, u32);
+    impl_set_uniform_4!(u32, set_u32_4, Uniform4ui, u32);
+
+    impl_set_uniform_1!(bool, set_bool, Uniform1i, i32);
+    impl_set_uniform_2!(bool, set_bool_2, Uniform2i, i32);
+    impl_set_uniform_3!(bool, set_bool_3, Uniform3i, i32);
+    impl_set_uniform_4!(bool, set_bool_4, Uniform4i, i32);
+
+    impl_set_uniform_vector!(glm::Vec1, set_vec1, Uniform1fv);
+    impl_set_uniform_vector!(glm::Vec2, set_vec2, Uniform2fv);
+    impl_set_uniform_vector!(glm::Vec3, set_vec3, Uniform3fv);
+    impl_set_uniform_vector!(glm::Vec4, set_vec4, Uniform4fv);
+
+    impl_set_uniform_matrix!(glm::Mat2, set_mat2, UniformMatrix2fv);
+    impl_set_uniform_matrix!(glm::Mat3, set_mat3, UniformMatrix3fv);
+    impl_set_uniform_matrix!(glm::Mat4, set_mat4, UniformMatrix4fv);
+
+    impl_set_uniform_matrix!(glm::Mat2x3, set_mat2x3, UniformMatrix2x3fv);
+    impl_set_uniform_matrix!(glm::Mat3x2, set_mat3x2, UniformMatrix3x2fv);
+    impl_set_uniform_matrix!(glm::Mat2x4, set_mat2x4, UniformMatrix2x4fv);
+    impl_set_uniform_matrix!(glm::Mat4x2, set_mat4x2, UniformMatrix4x2fv);
+    impl_set_uniform_matrix!(glm::Mat3x4, set_mat3x4, UniformMatrix3x4fv);
+    impl_set_uniform_matrix!(glm::Mat4x3, set_mat4x3, UniformMatrix4x3fv);
+}
 
 fn compile_shader(type_: GLenum, source: &str) -> GLuint {
     unsafe {
