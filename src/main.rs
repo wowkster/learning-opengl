@@ -4,20 +4,16 @@
 extern crate gl;
 extern crate glfw;
 
-use std::ffi::{c_void, CStr};
+use std::ffi::c_void;
 use std::mem::{size_of, size_of_val};
-use std::ptr::null;
 use std::sync::RwLock;
 
-use c_str_macro::c_str;
-use camera::CameraMovement;
-use gl::types::*;
-use glfw::{fail_on_errors, SwapInterval, Window, WindowEvent};
+use glfw::{fail_on_errors, Window};
 use glfw::{Action, Context, Key, OpenGlProfileHint, WindowHint};
 use nalgebra_glm as glm;
 
+use camera::CameraMovement;
 use shader::Shader;
-use texture::{ActiveTextureSlot, Texture2d};
 
 use crate::camera::Camera;
 
@@ -29,49 +25,49 @@ const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 
 #[rustfmt::skip]
-const VERTICES: [f32; 108] = [
-    // vertices
-    -0.5, -0.5, -0.5,
-     0.5, -0.5, -0.5,
-     0.5,  0.5, -0.5,
-     0.5,  0.5, -0.5,
-    -0.5,  0.5, -0.5,
-    -0.5, -0.5, -0.5,
+const VERTICES: [f32; 216] = [
+    // vertices        // normals
+   -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+   -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+   -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
 
-    -0.5, -0.5,  0.5,
-     0.5, -0.5,  0.5,
-     0.5,  0.5,  0.5,
-     0.5,  0.5,  0.5,
-    -0.5,  0.5,  0.5,
-    -0.5, -0.5,  0.5,
+   -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+   -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+   -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
 
-    -0.5,  0.5,  0.5,
-    -0.5,  0.5, -0.5,
-    -0.5, -0.5, -0.5,
-    -0.5, -0.5, -0.5,
-    -0.5, -0.5,  0.5,
-    -0.5,  0.5,  0.5,
+   -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+   -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
+   -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+   -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+   -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
+   -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
 
-     0.5,  0.5,  0.5,
-     0.5,  0.5, -0.5,
-     0.5, -0.5, -0.5,
-     0.5, -0.5, -0.5,
-     0.5, -0.5,  0.5,
-     0.5,  0.5,  0.5,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
 
-    -0.5, -0.5, -0.5,
-     0.5, -0.5, -0.5,
-     0.5, -0.5,  0.5,
-     0.5, -0.5,  0.5,
-    -0.5, -0.5,  0.5,
-    -0.5, -0.5, -0.5,
+   -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+   -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+   -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
 
-    -0.5,  0.5, -0.5,
-     0.5,  0.5, -0.5,
-     0.5,  0.5,  0.5,
-     0.5,  0.5,  0.5,
-    -0.5,  0.5,  0.5,
-    -0.5,  0.5, -0.5,
+   -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+   -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+   -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
 ];
 
 const CUBE_POSITION: [f32; 3] = [0.0, 0.0, 0.0];
@@ -101,7 +97,7 @@ fn main() {
     glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
 
     // Create a window for rendering
-    let (mut window, events) = glfw
+    let (mut window, _events) = glfw
         .create_window(
             SCREEN_WIDTH,
             SCREEN_HEIGHT,
@@ -132,27 +128,28 @@ fn main() {
     window.set_cursor_pos_callback(|x, y| mouse_callback(x as f32, y as f32));
     window.set_scroll_callback(|x, y| scroll_callback(x as f32, y as f32));
 
+    // Enable Depth Testing
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
+
     // Initialize the shader programs
     let mut cube_shader = Shader::new(
-        include_str!("../shaders/vert.glsl"),
+        include_str!("../shaders/cube.vert.glsl"),
         include_str!("../shaders/cube.frag.glsl"),
     );
     let mut light_shader = Shader::new(
-        include_str!("../shaders/vert.glsl"),
+        include_str!("../shaders/light.vert.glsl"),
         include_str!("../shaders/light.frag.glsl"),
     );
 
-    // Initialize Cube VAO
+    // Initialize Cube VAO and VBO
     let mut cube_vao: u32 = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut cube_vao);
-        gl::BindVertexArray(cube_vao);
-    }
-
-    // Initialize VBO
     let mut vbo: u32 = 0;
     unsafe {
+        gl::GenVertexArrays(1, &mut cube_vao);
         gl::GenBuffers(1, &mut vbo);
+
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
@@ -160,19 +157,30 @@ fn main() {
             VERTICES.as_ptr() as *const c_void,
             gl::STATIC_DRAW,
         );
-    }
 
-    // Link Vertex Attributes
-    unsafe {
+        gl::BindVertexArray(cube_vao);
+
+        // Position Attribute
         gl::VertexAttribPointer(
             0,
             3,
             gl::FLOAT,
             gl::FALSE,
-            3 * size_of::<f32>() as i32,
+            6 * size_of::<f32>() as i32,
             0 as *const _,
         );
         gl::EnableVertexAttribArray(0);
+
+        // Normal Attribute
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            6 * size_of::<f32>() as i32,
+            (3 * size_of::<f32>()) as *const _,
+        );
+        gl::EnableVertexAttribArray(1);
     }
 
     // Initialize Light VAO
@@ -188,22 +196,10 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            3 * size_of::<f32>() as i32,
+            6 * size_of::<f32>() as i32,
             0 as *const _,
         );
         gl::EnableVertexAttribArray(0);
-    }
-
-    // Unbind Buffers
-    unsafe {
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
-        gl::BindTexture(gl::TEXTURE_2D, 0);
-    }
-
-    // Enable Depth Testing
-    unsafe {
-        gl::Enable(gl::DEPTH_TEST);
     }
 
     // Main render loop
@@ -223,7 +219,7 @@ fn main() {
 
         // Draw the background
         unsafe {
-            gl::ClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
@@ -232,7 +228,7 @@ fn main() {
         let view = camera.get_view_matrix();
 
         // Create our projection matrix
-        let proj = glm::perspective(
+        let projection = glm::perspective(
             SCREEN_WIDTH as f32 / SCREEN_HEIGHT as f32,
             f32::to_radians(camera.fov),
             0.1,
@@ -250,8 +246,10 @@ fn main() {
 
             cube_shader.set_mat4("model", model);
             cube_shader.set_mat4("view", view);
-            cube_shader.set_mat4("projection", proj);
+            cube_shader.set_mat4("projection", projection);
 
+            cube_shader.set_vec3("lightPos", glm::make_vec3(&LIGHT_POSITION));
+            cube_shader.set_vec3("viewPos", camera.position);
             cube_shader.set_vec3("objectColor", glm::vec3(1.0, 0.5, 0.31));
             cube_shader.set_vec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
 
@@ -274,7 +272,7 @@ fn main() {
 
             light_shader.set_mat4("model", model);
             light_shader.set_mat4("view", view);
-            light_shader.set_mat4("projection", proj);
+            light_shader.set_mat4("projection", projection);
 
             // Draw the cube
             unsafe {
@@ -343,7 +341,7 @@ fn mouse_callback(x: f32, y: f32) {
     }
 }
 
-fn scroll_callback(x_offset: f32, y_offset: f32) {
+fn scroll_callback(_x_offset: f32, y_offset: f32) {
     let mut camera = CAMERA.write().unwrap();
 
     camera.process_mouse_scroll(y_offset)
